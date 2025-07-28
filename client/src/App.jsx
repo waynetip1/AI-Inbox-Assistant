@@ -39,7 +39,8 @@ function App() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/stats?session=${sessionId}&range=${range}`);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/stats?session=${sessionId}&range=${range}`);
+
       if (!res.ok) throw new Error('Failed to fetch stats');
 
       const reader = res.body.getReader();
