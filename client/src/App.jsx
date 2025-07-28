@@ -50,6 +50,7 @@ function App() {
       const readAll = async () => {
         const { done, value } = await reader.read();
         if (done) {
+          console.log('📦 Full streamed response:', fullText); // 👈 DEBUG LOG
           const lines = fullText
             .split('\n')
             .filter(line => line.startsWith('data: '))
@@ -68,7 +69,9 @@ function App() {
           return;
         }
 
-        fullText += decoder.decode(value, { stream: true });
+        const chunk = decoder.decode(value, { stream: true }); // 👈 DEBUG LOG
+        console.log('📥 Streamed chunk so far:', chunk);        // 👈
+        fullText += chunk;
         return readAll();
       };
 
@@ -86,7 +89,6 @@ function App() {
     fetchStats(selectedRange, forceRefresh);
   }, [selectedRange, forceRefresh]);
 
-  // ✅ Background prefetch common ranges after first load
   useEffect(() => {
     const rangesToPrefetch = ['30d', '60d', '90d'];
     const sessionId = getSessionIdFromUrl();
@@ -95,9 +97,9 @@ function App() {
     rangesToPrefetch.forEach((range, i) => {
       setTimeout(() => {
         fetchStats(range, false);
-      }, 1000 + i * 500); // stagger calls slightly
+      }, 1000 + i * 500);
     });
-  }, []); // run once after mount
+  }, []);
 
   const getSnapshotLabel = (range) => {
     switch (range) {
