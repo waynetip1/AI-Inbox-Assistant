@@ -16,13 +16,8 @@ sessionStore.set('TEST123', {
     subscriptions: 11,
     total: 89
   },
-  tokens: {
-    access_token: 'mock',
-    refresh_token: 'mock-refresh-token', // ✅ required!
-    expiry_date: Date.now() + 100000
-  }
+  tokens: { access_token: 'mock', expiry_date: Date.now() + 100000 } // dummy token
 });
-
 
 const MAX_PAGES_FOR_FULL_SCAN = 5;
 
@@ -35,6 +30,18 @@ router.get('/stats', async (req, res) => {
     const sessionData = sessionStore.get(session);
     if (!sessionData || !sessionData.tokens) {
       return res.status(401).json({ error: 'Invalid or missing session token.' });
+    }
+
+    // ✅ Return early for mock session
+    if (session === 'TEST123') {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+
+      res.write(`data: ${JSON.stringify({ range, stats: sessionData.stats })}\n\n`);
+      res.end();
+      return;
     }
 
     const oauth2Client = new google.auth.OAuth2(
