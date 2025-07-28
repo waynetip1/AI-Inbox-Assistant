@@ -16,8 +16,13 @@ sessionStore.set('TEST123', {
     subscriptions: 11,
     total: 89
   },
-  tokens: { access_token: 'mock', expiry_date: Date.now() + 100000 } // dummy token
+  tokens: {
+    access_token: 'mock',
+    refresh_token: 'mock-refresh-token', // ✅ required!
+    expiry_date: Date.now() + 100000
+  }
 });
+
 
 const MAX_PAGES_FOR_FULL_SCAN = 5;
 
