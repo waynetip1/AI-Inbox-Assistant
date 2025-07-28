@@ -7,10 +7,14 @@ const PORT = process.env.PORT || 5000;
 
 // ✅ Allow frontend connection
 app.use(cors({
-  origin: 'http://localhost:5173',
-  methods: ['GET'],
+  origin: [
+    'http://localhost:5173',
+    'https://ai-inbox-assistant.vercel.app',
+  ],
+  methods: ['GET', 'POST'],
   credentials: true,
 }));
+
 
 app.use(express.json());
 
