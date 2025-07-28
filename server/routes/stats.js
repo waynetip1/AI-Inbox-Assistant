@@ -3,6 +3,22 @@ const router = express.Router();
 const { google } = require('googleapis');
 const sessionStore = require('../sessionStore');
 
+// ✅ Add mock session for testing deployed frontend
+sessionStore.set('TEST123', {
+  stats: {
+    inbox: 42,
+    sent: 12,
+    drafts: 3,
+    spam: 7,
+    unread: 19,
+    starred: 5,
+    important: 2,
+    subscriptions: 11,
+    total: 89
+  },
+  tokens: { access_token: 'mock', expiry_date: Date.now() + 100000 } // dummy token
+});
+
 const MAX_PAGES_FOR_FULL_SCAN = 5;
 
 router.get('/stats', async (req, res) => {
@@ -77,7 +93,6 @@ router.get('/stats', async (req, res) => {
       } while (nextPageToken);
 
       if (range !== '1d' && firstPageCount === 500) {
-        // Estimate from full page count instead of raw total
         const estimated = (seenPages - 1) * 500 + lastPageCount;
         stats[label] = `~${estimated}`;
       } else {
