@@ -50,7 +50,7 @@ function App() {
       const readAll = async () => {
         const { done, value } = await reader.read();
         if (done) {
-          console.log('📦 Full streamed response:', fullText); // 👈 DEBUG LOG
+          console.log('📦 Full streamed response:', fullText);
           const lines = fullText
             .split('\n')
             .filter(line => line.startsWith('data: '))
@@ -69,8 +69,8 @@ function App() {
           return;
         }
 
-        const chunk = decoder.decode(value, { stream: true }); // 👈 DEBUG LOG
-        console.log('📥 Streamed chunk so far:', chunk);        // 👈
+        const chunk = decoder.decode(value, { stream: true });
+        console.log('📥 Streamed chunk so far:', chunk);
         fullText += chunk;
         return readAll();
       };
@@ -150,6 +150,15 @@ function App() {
 
       <div className="main">
         <h1 className="page-title">📬 AI Inbox Assistant</h1>
+
+        {/* 🔐 Login Button */}
+        <div style={{ marginBottom: '16px' }}>
+          <button onClick={() => {
+            window.location.href = "https://your-backend-name.onrender.com/api/auth/google";
+          }}>
+            🔐 Login with Google
+          </button>
+        </div>
 
         <div className="card-row">
           <div className="card">
