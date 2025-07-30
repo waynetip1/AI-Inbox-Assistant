@@ -154,7 +154,7 @@ function App() {
         {/* 🔐 Login Button */}
         <div style={{ marginBottom: '16px' }}>
           <button onClick={() => {
-            window.location.href = "https://your-backend-name.onrender.com/api/auth/google";
+            window.location.href = "https://ai-inbox-assistant-95gq.onrender.com/api/auth/google";
           }}>
             🔐 Login with Google
           </button>
