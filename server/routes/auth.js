@@ -20,6 +20,7 @@ router.get('/google', (req, res) => {
     access_type: 'offline',
     scope: ['https://www.googleapis.com/auth/gmail.readonly'],
     prompt: 'consent',
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI, // ✅ explicit
   });
   res.redirect(url);
 });
@@ -30,7 +31,11 @@ router.get('/google/callback', async (req, res) => {
     const oauth2Client = createOAuthClient();
     const { code } = req.query;
 
-    const { tokens } = await oauth2Client.getToken(code);
+    const { tokens } = await oauth2Client.getToken({
+      code,
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI, // ✅ match exactly
+    });
+
     oauth2Client.setCredentials(tokens);
 
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
@@ -53,7 +58,14 @@ router.get('/google/callback', async (req, res) => {
     });
 
     console.log(`✅ Session stored for ID: ${sessionId}`);
-    res.redirect(`http://localhost:5173/?session=${sessionId}`);
+
+    // ✅ Redirect to Vercel (prod) or localhost (dev)
+    const redirectBase =
+      process.env.NODE_ENV === 'production'
+        ? 'https://ai-inbox-assistant.vercel.app'
+        : 'http://localhost:5173';
+
+    res.redirect(`${redirectBase}/?session=${sessionId}`);
   } catch (err) {
     console.error('❌ Google auth error:', err);
     res.status(500).send('Authentication failed');
