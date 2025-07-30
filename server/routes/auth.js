@@ -20,7 +20,7 @@ router.get('/google', (req, res) => {
     access_type: 'offline',
     scope: ['https://www.googleapis.com/auth/gmail.readonly'],
     prompt: 'consent',
-    redirect_uri: process.env.GOOGLE_REDIRECT_URI, // ✅ explicit
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
   });
   res.redirect(url);
 });
@@ -33,7 +33,7 @@ router.get('/google/callback', async (req, res) => {
 
     const { tokens } = await oauth2Client.getToken({
       code,
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI, // ✅ match exactly
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI,
     });
 
     oauth2Client.setCredentials(tokens);
@@ -59,11 +59,10 @@ router.get('/google/callback', async (req, res) => {
 
     console.log(`✅ Session stored for ID: ${sessionId}`);
 
-    // ✅ Redirect to Vercel (prod) or localhost (dev)
     const redirectBase =
-  process.env.NODE_ENV === 'production'
-    ? 'https://ai-inbox-assistant.vercel.app'
-    : 'http://localhost:5173';
+      process.env.NODE_ENV === 'production'
+        ? 'https://ai-inbox-assistant.vercel.app'
+        : 'http://localhost:5173';
 
     res.redirect(`${redirectBase}/?session=${sessionId}`);
   } catch (err) {
