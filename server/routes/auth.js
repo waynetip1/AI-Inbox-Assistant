@@ -61,9 +61,9 @@ router.get('/google/callback', async (req, res) => {
 
     // ✅ Redirect to Vercel (prod) or localhost (dev)
     const redirectBase =
-      process.env.NODE_ENV === 'production'
-        ? 'https://ai-inbox-assistant.vercel.app'
-        : 'http://localhost:5173';
+  process.env.NODE_ENV === 'production'
+    ? 'https://ai-inbox-assistant.vercel.app'
+    : 'http://localhost:5173';
 
     res.redirect(`${redirectBase}/?session=${sessionId}`);
   } catch (err) {
