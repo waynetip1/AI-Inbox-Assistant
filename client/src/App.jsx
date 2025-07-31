@@ -90,7 +90,7 @@ function App() {
   }, [selectedRange, forceRefresh]);
 
   useEffect(() => {
-    const rangesToPrefetch = ['30d', '60d', '90d'];
+    const rangesToPrefetch = ['30d', '60d', '90d', '1y'];
     const sessionId = getSessionIdFromUrl();
     if (!sessionId) return;
 
