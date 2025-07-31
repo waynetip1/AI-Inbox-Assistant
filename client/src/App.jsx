@@ -154,8 +154,9 @@ function App() {
         {/* 🔐 Login Button */}
         <div style={{ marginBottom: '16px' }}>
           <button onClick={() => {
-            window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/auth/google`;
+            window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
           }}>
+
             🔐 Login with Google
           </button>
         </div>
