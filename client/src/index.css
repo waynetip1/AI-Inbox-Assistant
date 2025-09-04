@@ -10,3 +10,16 @@ html, body, #root {
 body {
   background-color: #f3f4f6; /* Tailwind gray-100 */
 }
+/* Snapshot tile label wrapping: no hyphenation; allow gentle breaks */
+/* --- Snapshot tile label legibility --- */
+.tile-label {
+  /* avoid ugly hyphenation everywhere */
+  hyphens: none;
+}
+.tile-label,
+.tile-label * {
+  /* do NOT break in the middle of words on small tiles */
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
