@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI Inbox Assistant · 2001 Theme Preview</title>
+
+  <!-- IBM Plex -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind (CDN for preview) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'ui-sans-serif', 'system-ui'],
+            mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular']
+          },
+          colors: {
+            obsidian: '#0b0d10',
+            void: '#0a0c0f',
+            paper: '#f7f7f7',
+            hal: '#D70022',
+            link: '#4DA3FF',
+            line: 'rgba(255,255,255,0.06)',
+            inkDim: 'rgba(255,255,255,0.70)'
+          },
+          boxShadow: {
+            monolith: '0 20px 60px rgba(0,0,0,0.60)',
+            lift: '0 10px 30px rgba(0,0,0,0.45)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --card-r: 10px;
+    }
+    body {
+      background: radial-gradient(1200px 800px at 70% -10%, #111827 5%, #0b0d10 40%, #060709 100%);
+      color: #e5e7eb;
+    }
+    /* Starfield */
+    .stars, .stars2, .stars3 {
+      position: fixed; top:0; left:0; right:0; bottom:0; z-index:-1; background-repeat: repeat;
+      background-image:
+        radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.8), transparent 40%),
+        radial-gradient(1.5px 1.5px at 80px 120px, rgba(255,255,255,0.6), transparent 40%),
+        radial-gradient(1.2px 1.2px at 200px 50px, rgba(255,255,255,0.5), transparent 40%),
+        radial-gradient(1.2px 1.2px at 320px 240px, rgba(255,255,255,0.4), transparent 40%);
+      animation: drift 120s linear infinite;
+      opacity:.35;
+    }
+    .stars2 { animation-duration: 200s; opacity:.25; }
+    .stars3 { animation-duration: 340s; opacity:.18; }
+    @keyframes drift {
+      from { background-position: 0 0, 0 0, 0 0, 0 0; }
+      to   { background-position: 10000px 2000px, 8000px 1500px, 6000px 1200px, 12000px 2400px; }
+    }
+
+    /* Monolith Card */
+    .mono-card {
+      border-radius: var(--card-r);
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: var(--shadow, 0 1px 2px rgba(0,0,0,.4));
+      transition: transform .25s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
+      backdrop-filter: saturate(1.1) blur(0px);
+    }
+    .mono-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.55);
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .hair { border-color: rgba(255,255,255,0.10); }
+
+    /* HAL eye */
+    .hal-eye {
+      width: 38px; height: 38px; border-radius: 9999px;
+      background: radial-gradient(circle at 40% 40%, #ff6b6b 0%, #D70022 45%, #8f0012 70%, #220005 100%);
+      box-shadow:
+        0 0 12px rgba(215,0,34,.75),
+        inset 0 0 8px rgba(255,255,255,.35);
+      animation: pulse 3.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(215,0,34,.65), inset 0 0 8px rgba(255,255,255,.3); }
+      50%      { box-shadow: 0 0 24px rgba(215,0,34,.95), inset 0 0 10px rgba(255,255,255,.55); }
+    }
+    .kbd {
+      border: 1px solid rgba(255,255,255,0.18);
+      border-bottom-width: 2px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font: 12px/1.2 var(--font, 'IBM Plex Mono', monospace);
+      color: #e5e7eb;
+      background: rgba(255,255,255,0.06);
+    }
+    .chip {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+    }
+    .pill-active {
+      background: #D70022; color: white; border-color: #e11d2e !important;
+      box-shadow: 0 8px 20px rgba(215,0,34,.35);
+    }
+    .donut-label { font: 700 6px 'IBM Plex Sans', sans-serif; fill: #e5e7eb; }
+  </style>
+</head>
+<body class="font-sans">
+  <div class="stars"></div><div class="stars2"></div><div class="stars3"></div>
+
+  <!-- Top bar -->
+  <header class="sticky top-0 z-20 backdrop-blur bg-obsidian/70 border-b border-line">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="hal-eye"></div>
+        <div>
+          <div class="text-sm tracking-wide uppercase text-inkDim">AI Inbox Assistant</div>
+          <div class="text-xs text-inkDim">Monolith UI • 2001 Preview</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-inkDim hidden sm:inline">Provider</span>
+        <span class="px-3 py-1 text-xs rounded-full chip">Gemini</span>
+        <span class="text-xs text-inkDim">Daily</span>
+        <span class="kbd">0.09</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <!-- Session / Range -->
+    <section class="flex items-center justify-between">
+      <div class="text-sm text-inkDim">Session <span class="text-white font-mono ml-1">TEST123</span></div>
+      <div class="flex items-center gap-2">
+        <div class="inline-flex rounded-lg border hair overflow-hidden">
+          <button class="px-3 py-1.5 text-xs pill-active border-r hair">1d</button>
+          <button class="px-3 py-1.5 text-xs text-inkDim hover:text-white hover:bg-white/5 border-r hair">7d</button>
+          <button class="px-3 py-1.5 text-xs text-inkDim hover:text-white hover:bg-white/5 border-r hair">30d</button>
+          <button class="px-3 py-1.5 text-xs text-inkDim hover:text-white hover:bg-white/5 border-r hair">60d</button>
+          <button class="px-3 py-1.5 text-xs text-inkDim hover:text-white hover:bg-white/5 border-r hair">90d</button>
+          <button class="px-3 py-1.5 text-xs text-inkDim hover:text-white hover:bg-white/5">1y</button>
+        </div>
+        <button class="ml-2 px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 border hair">Refresh</button>
+      </div>
+    </section>
+
+    <!-- Snapshot -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold">1-Day Snapshot</h2>
+        <div class="flex items-center gap-2 text-xs">
+          <button class="px-2.5 py-1 rounded-lg bg-white/5 border hair hover:bg-white/10">Customize</button>
+          <button class="px-2.5 py-1 rounded-lg bg-white/5 border hair hover:bg-white/10">Average</button>
+          <span class="text-inkDim">Updated 12:05</span>
+          <button class="px-2.5 py-1 rounded-lg bg-white/5 border hair hover:bg-white/10">Save as email</button>
+        </div>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mono-card p-4">
+          <div class="text-sm text-inkDim">Inbox</div>
+          <div class="mt-2 text-3xl font-bold tracking-tight">41</div>
+          <div class="mt-1 text-xs text-inkDim font-mono">Δ +12%</div>
+        </div>
+        <div class="mono-card p-4">
+          <div class="text-sm text-inkDim">Unread</div>
+          <div class="mt-2 text-3xl font-bold tracking-tight">30</div>
+          <div class="mt-1 text-xs text-inkDim">5 important</div>
+        </div>
+        <div class="mono-card p-4">
+          <div class="text-sm text-inkDim">Starred / Important</div>
+          <div class="mt-2 text-3xl font-bold tracking-tight">5</div>
+          <div class="mt-1 text-xs text-inkDim">Needs review</div>
+        </div>
+        <div class="mono-card p-4">
+          <div class="text-sm text-inkDim">Sent</div>
+          <div class="mt-2 text-3xl font-bold tracking-tight">0</div>
+          <div class="mt-1 text-xs text-inkDim">Draft with AI?</div>
+        </div>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mono-card p-4"><div class="text-sm text-inkDim">Primary</div><div class="mt-2 text-2xl font-semibold">1</div></div>
+        <div class="mono-card p-4"><div class="text-sm text-inkDim">Promotions</div><div class="mt-2 text-2xl font-semibold">5</div></div>
+        <div class="mono-card p-4"><div class="text-sm text-inkDim">Social</div><div class="mt-2 text-2xl font-semibold">1</div></div>
+        <div class="mono-card p-4"><div class="text-sm text-inkDim">Updates</div><div class="mt-2 text-2xl font-semibold">34</div></div>
+      </div>
+
+      <div class="mono-card p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="hal-eye" style="width:32px;height:32px;"></div>
+          <div>
+            <div class="text-sm">Estimated time saved</div>
+            <div class="text-xs text-inkDim">Model estimate • Batch + prioritization</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-bold">≈ 2 min</div>
+          <div class="text-xs text-inkDim">last 24h</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trends -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold">Trends (1-Day)</h2>
+        <div class="flex items-center gap-2 text-xs">
+          <button class="px-2.5 py-1 rounded-lg bg-white/5 border hair hover:bg-white/10">Categories</button>
+          <button class="px-2.5 py-1 rounded-lg bg-white/5 border hair hover:bg-white/10">Senders</button>
+          <button class="px-2.5 py-1 rounded-lg bg-white/5 border hair hover:bg-white/10">Activity</button>
+        </div>
+      </div>
+
+      <div class="mono-card p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="mx-auto md:col-span-1">
+          <!-- Donut -->
+          <svg viewBox="0 0 42 42" class="w-56 h-56">
+            <circle cx="21" cy="21" r="15.915" fill="transparent"/>
+            <circle cx="21" cy="21" r="15.915" stroke="#D70022" stroke-width="5" fill="transparent"
+              stroke-dasharray="68 100" stroke-dashoffset="25"></circle>
+            <circle cx="21" cy="21" r="15.915" stroke="#9CA3AF" stroke-width="5" fill="transparent"
+              stroke-dasharray="12 100" stroke-dashoffset="93"></circle>
+            <circle cx="21" cy="21" r="15.915" stroke="#4DA3FF" stroke-width="5" fill="transparent"
+              stroke-dasharray="8 100" stroke-dashoffset="105"></circle>
+            <circle cx="21" cy="21" r="15.915" stroke="#22c55e" stroke-width="5" fill="transparent"
+              stroke-dasharray="12 100" stroke-dashoffset="117"></circle>
+            <circle cx="21" cy="21" r="10" fill="transparent"></circle>
+            <text x="50%" y="51%" text-anchor="middle" class="donut-label">TODAY</text>
+          </svg>
+        </div>
+
+        <div class="md:col-span-2">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div class="flex items-center gap-2 text-sm"><span class="h-2.5 w-2.5 rounded-full" style="background:#D70022"></span> Updates</div>
+            <div class="flex items-center gap-2 text-sm"><span class="h-2.5 w-2.5 rounded-full bg-gray-400"></span> Promotions</div>
+            <div class="flex items-center gap-2 text-sm"><span class="h-2.5 w-2.5 rounded-full" style="background:#4DA3FF"></span> Social</div>
+            <div class="flex items-center gap-2 text-sm"><span class="h-2.5 w-2.5 rounded-full bg-green-500"></span> Primary</div>
+          </div>
+
+          <div class="mt-4">
+            <div class="text-xs text-inkDim mb-2">Top senders</div>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 rounded-full chip text-xs hover:bg-white/10">LinkedIn Job Alerts</span>
+              <span class="px-3 py-1 rounded-full chip text-xs hover:bg-white/10">One Community Shop</span>
+              <span class="px-3 py-1 rounded-full chip text-xs hover:bg-white/10">Ko Whitney</span>
+              <span class="px-3 py-1 rounded-full chip text-xs hover:bg-white/10">Team Gate Porter</span>
+              <span class="px-3 py-1 rounded-full chip text-xs hover:bg-white/10">Coach Out</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASA-safe Message Picker -->
+    <section class="space-y-4">
+      <h2 class="text-base font-semibold">CASA-safe Message Picker</h2>
+      <div class="mono-card p-4">
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-[#D70022]" checked>Unread</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-[#D70022]">Updates</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-[#D70022]">Sent (replies)</label>
+          <span class="hidden sm:inline mx-2 text-inkDim">Newer than</span>
+          <select class="px-2 py-1 rounded-lg bg-white/5 border hair text-sm">
+            <option>7d</option><option>30d</option><option>90d</option>
+          </select>
+          <input placeholder="From (name or email)" class="px-3 py-1.5 rounded-lg bg-white/5 border hair text-sm flex-1 min-w-[160px]"/>
+          <input placeholder="Subject contains…" class="px-3 py-1.5 rounded-lg bg-white/5 border hair text-sm flex-1 min-w-[160px]"/>
+          <button class="ml-auto px-3 py-1.5 rounded-lg bg-hal text-white text-sm hover:bg-[#b6001d]">Search</button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-inkDim border-y border-line">
+                <th class="py-2 pr-4">From</th>
+                <th class="py-2 pr-4">Subject</th>
+                <th class="py-2">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="3" class="text-center text-inkDim py-8">No results — try a search.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reply Assistant -->
+    <section class="space-y-4">
+      <h2 class="text-base font-semibold">Reply Assistant (CASA-safe)</h2>
+      <form class="mono-card p-6 space-y-4">
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="space-y-1">
+            <label class="text-sm text-inkDim">To</label>
+            <input placeholder="name@example.com" class="w-full px-3 py-2 rounded-lg bg-white/5 border hair"/>
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm text-inkDim">Subject</label>
+            <input placeholder="Re: your question about…" class="w-full px-3 py-2 rounded-lg bg-white/5 border hair"/>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-[#D70022]" checked>Auto “Re:”</label>
+          <div> Tone:
+            <select class="ml-1 px-2 py-1 rounded-lg bg-white/5 border hair">
+              <option>Professional</option><option>Friendly</option><option>Brief</option>
+            </select>
+          </div>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-[#D70022]" checked>Append my signature</label>
+          <button type="button" class="ml-auto px-3 py-1.5 rounded-lg bg-white/5 border hair hover:bg-white/10">Edit Profile…</button>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-sm text-inkDim">Original message (paste here)</label>
+          <textarea rows="6" class="w-full px-3 py-2 rounded-lg bg-white/5 border hair" placeholder="Paste the email you’re replying to."></textarea>
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="text-sm text-inkDim">Your reply</label>
+            <div class="flex items-center gap-2">
+              <button type="button" class="px-3 py-1.5 rounded-lg bg-white/5 border hair hover:bg-white/10">Write with AI</button>
+              <button type="button" class="px-3 py-1.5 rounded-lg bg-white/5 border hair hover:bg-white/10">Refine with AI</button>
+            </div>
+          </div>
+          <textarea rows="6" class="w-full px-3 py-2 rounded-lg bg-white/5 border hair" placeholder="Type or edit your reply here."></textarea>
+        </div>
+
+        <div class="rounded-lg bg-white/3 border hair p-3 text-sm">
+          <div class="font-medium">Preview → Drafts</div>
+          <div class="mt-1 text-inkDim"><span class="font-medium">Subject:</span> Re: —</div>
+          <div class="mt-1 text-inkDim"><span class="font-medium">Body:</span> (reply is empty)</div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-inkDim">Tip: <span class="kbd" style="font-family:'IBM Plex Mono'">Ctrl/Cmd + Enter</span> to draft.</div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="px-3 py-2 rounded-lg bg-white/5 border hair hover:bg-white/10">Discard</button>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-hal text-white shadow-monolith hover:bg-[#b6001d]">Send to Drafts</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <footer class="pt-4 pb-12 text-center text-xs text-inkDim">
+      Design preview only • © AI Inbox Assistant
+      <a class="underline text-link ml-2" href="/design-preview.html">Switch to Light Preview</a>
+    </footer>
+  </main>
+</body>
+</html>

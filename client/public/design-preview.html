@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Inbox Assistant · Design Preview</title>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CDN (for preview only; production uses your PostCSS config) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    /* Tailwind theme tokens for preview */
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          colors: {
+            canvas: '#f7f8fb',
+            surface: '#ffffff',
+            ink: '#0f172a',
+            soft: '#64748b',
+            ring: '#cbd5e1',
+            primary: {
+              50:  '#eef5ff',
+              100: '#d9e8ff',
+              200: '#bcd5ff',
+              300: '#91b8ff',
+              400: '#5a8fff',
+              500: '#3b82f6', /* main */
+              600: '#2f6fe0',
+              700: '#295ec0',
+              800: '#244f9e',
+              900: '#1f427f'
+            },
+            success: '#22c55e',
+            warn:    '#f59e0b',
+            info:    '#06b6d4',
+          },
+          boxShadow: {
+            soft: '0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)',
+            lift: '0 10px 25px rgba(15, 23, 42, 0.10)',
+          },
+          borderRadius: { xl2: '1rem', xl3: '1.25rem' }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Subtle focus + transitions */
+    :root {
+      --card-r: 16px;
+    }
+    .card {
+      border-radius: var(--card-r);
+      box-shadow: 0 1px 2px rgba(2, 6, 23, .04);
+      border: 1px solid rgba(15, 23, 42, .06);
+      background: #fff;
+    }
+    .kbd {
+      border: 1px solid #E2E8F0;
+      border-bottom-width: 2px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #F8FAFC;
+    }
+  </style>
+</head>
+<body class="bg-canvas text-ink antialiased">
+  <!-- Top Nav -->
+  <header class="sticky top-0 z-20 bg-canvas/80 backdrop-blur supports-[backdrop-filter]:bg-canvas/60">
+    <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-2xl bg-primary-500/10 grid place-items-center">
+          <!-- simple logo -->
+          <svg class="h-5 w-5 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 7l9 6 9-6" />
+            <path d="M5 19h14a2 2 0 0 0 2-2V7" />
+            <path d="M3 7v10a2 2 0 0 0 2 2" />
+          </svg>
+        </div>
+        <h1 class="text-lg font-semibold tracking-tight">AI Inbox Assistant</h1>
+        <span class="ml-3 text-xs text-soft hidden md:inline">Design Preview</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="hidden sm:inline text-xs text-soft">Provider</span>
+        <span class="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-xs shadow-soft border border-ring">
+          <span class="h-2 w-2 rounded-full bg-success"></span> Gemini
+        </span>
+        <span class="ml-2 text-xs text-soft">Daily</span>
+        <span class="kbd">0.09</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-8 space-y-8">
+    <!-- Session / Range -->
+    <section class="flex items-center justify-between">
+      <div class="flex items-center gap-2 text-sm">
+        <span class="text-soft">Session:</span>
+        <span class="font-medium">TEST123</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="inline-flex rounded-full bg-surface p-1 shadow-soft border border-ring">
+          <!-- Range pills -->
+          <button class="px-3 py-1 text-xs rounded-full bg-primary-500 text-white">1d</button>
+          <button class="px-3 py-1 text-xs rounded-full hover:bg-primary-50">7d</button>
+          <button class="px-3 py-1 text-xs rounded-full hover:bg-primary-50">30d</button>
+          <button class="px-3 py-1 text-xs rounded-full hover:bg-primary-50">60d</button>
+          <button class="px-3 py-1 text-xs rounded-full hover:bg-primary-50">90d</button>
+          <button class="px-3 py-1 text-xs rounded-full hover:bg-primary-50">1y</button>
+        </div>
+        <button class="ml-2 px-3 py-1.5 text-xs rounded-lg bg-primary-600 text-white shadow-soft hover:bg-primary-700">Refresh</button>
+      </div>
+    </section>
+
+    <!-- Snapshot -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold">1-Day Snapshot</h2>
+        <div class="flex items-center gap-2 text-xs">
+          <button class="px-2.5 py-1 rounded-lg bg-surface border border-ring hover:bg-primary-50">Customize</button>
+          <button class="px-2.5 py-1 rounded-lg bg-surface border border-ring hover:bg-primary-50">Average</button>
+          <span class="text-soft">Updated 12:05 PM</span>
+          <button class="px-2.5 py-1 rounded-lg bg-surface border border-ring hover:bg-primary-50">Save as email</button>
+        </div>
+      </div>
+
+      <!-- Snapshot cards -->
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Card -->
+        <div class="card p-4 hover:shadow-lift transition-shadow">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-soft">Inbox</span>
+            <span class="rounded-full px-2 py-0.5 text-[11px] bg-primary-50 text-primary-700 border border-primary-100">Core</span>
+          </div>
+          <div class="mt-3 text-3xl font-bold">41</div>
+          <div class="mt-1 text-xs text-soft">vs avg +12%</div>
+        </div>
+
+        <div class="card p-4 hover:shadow-lift transition-shadow">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-soft">Unread</span>
+            <span class="rounded-full px-2 py-0.5 text-[11px] bg-amber-50 text-amber-700 border border-amber-100">Focus</span>
+          </div>
+          <div class="mt-3 text-3xl font-bold">30</div>
+          <div class="mt-1 text-xs text-soft">5 important</div>
+        </div>
+
+        <div class="card p-4 hover:shadow-lift transition-shadow">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-soft">Starred / Important</span>
+          </div>
+          <div class="mt-3 text-3xl font-bold">5</div>
+          <div class="mt-1 text-xs text-soft">Needs review</div>
+        </div>
+
+        <div class="card p-4 hover:shadow-lift transition-shadow">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-soft">Sent</span>
+          </div>
+          <div class="mt-3 text-3xl font-bold">0</div>
+          <div class="mt-1 text-xs text-soft">Draft with AI?</div>
+        </div>
+      </div>
+
+      <!-- By category -->
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="card p-4"><div class="text-sm text-soft">Primary / Personal</div><div class="mt-2 text-2xl font-semibold">1</div></div>
+        <div class="card p-4"><div class="text-sm text-soft">Promotions</div><div class="mt-2 text-2xl font-semibold">5</div></div>
+        <div class="card p-4"><div class="text-sm text-soft">Social</div><div class="mt-2 text-2xl font-semibold">1</div></div>
+        <div class="card p-4"><div class="text-sm text-soft">Updates</div><div class="mt-2 text-2xl font-semibold">34</div></div>
+      </div>
+
+      <!-- Estimated time saved -->
+      <div class="card p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-lg bg-primary-500/10 grid place-items-center text-primary-600">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 6v6l4 2" />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-sm font-medium">Estimated time saved</div>
+            <div class="text-xs text-soft">Model-based estimate · Assumes prioritization & batch processing</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-bold">≈ 2 min</div>
+          <div class="text-xs text-soft">for 1-day window</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trends -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold">Trends (1-Day)</h2>
+        <div class="flex items-center gap-2 text-xs">
+          <button class="px-2.5 py-1 rounded-lg bg-surface border border-ring hover:bg-primary-50">Categories</button>
+          <button class="px-2.5 py-1 rounded-lg bg-surface border border-ring hover:bg-primary-50">Senders</button>
+          <button class="px-2.5 py-1 rounded-lg bg-surface border border-ring hover:bg-primary-50">Activity</button>
+        </div>
+      </div>
+
+      <div class="card p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Donut (SVG) -->
+        <div class="mx-auto md:col-span-1">
+          <svg viewBox="0 0 42 42" class="w-56 h-56">
+            <circle cx="21" cy="21" r="15.915" fill="white" />
+            <circle class="stroke-primary-500" cx="21" cy="21" r="15.915" fill="transparent" stroke="currentColor" stroke-width="5" stroke-dasharray="68 100" stroke-dashoffset="25"></circle>
+            <circle class="stroke-warn" cx="21" cy="21" r="15.915" fill="transparent" stroke="currentColor" stroke-width="5" stroke-dasharray="12 100" stroke-dashoffset="93"></circle>
+            <circle class="stroke-info" cx="21" cy="21" r="15.915" fill="transparent" stroke="currentColor" stroke-width="5" stroke-dasharray="8 100" stroke-dashoffset="105"></circle>
+            <circle class="stroke-success" cx="21" cy="21" r="15.915" fill="transparent" stroke="currentColor" stroke-width="5" stroke-dasharray="12 100" stroke-dashoffset="117"></circle>
+            <!-- hole -->
+            <circle cx="21" cy="21" r="10" fill="white"></circle>
+            <text x="50%" y="51%" text-anchor="middle" class="fill-ink" style="font: 700 6px Inter, sans-serif">Today</text>
+          </svg>
+        </div>
+
+        <!-- Legend & chips -->
+        <div class="md:col-span-2">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="h-2.5 w-2.5 rounded-full bg-primary-500"></span> Updates
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="h-2.5 w-2.5 rounded-full bg-warn"></span> Promotions
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="h-2.5 w-2.5 rounded-full bg-info"></span> Social
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="h-2.5 w-2.5 rounded-full bg-success"></span> Primary
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="text-xs text-soft mb-2">Top senders</div>
+            <div class="flex flex-wrap gap-2">
+              <!-- sender chips -->
+              <span class="px-3 py-1 rounded-full bg-surface border border-ring shadow-soft text-xs hover:bg-primary-50">Postman Mojisos</span>
+              <span class="px-3 py-1 rounded-full bg-surface border border-ring shadow-soft text-xs hover:bg-primary-50">One Community Shop</span>
+              <span class="px-3 py-1 rounded-full bg-surface border border-ring shadow-soft text-xs hover:bg-primary-50">LinkedIn Job Alerts</span>
+              <span class="px-3 py-1 rounded-full bg-surface border border-ring shadow-soft text-xs hover:bg-primary-50">Ko Whitney</span>
+              <span class="px-3 py-1 rounded-full bg-surface border border-ring shadow-soft text-xs hover:bg-primary-50">Team Gate Porter</span>
+              <span class="px-3 py-1 rounded-full bg-surface border border-ring shadow-soft text-xs hover:bg-primary-50">Coach Out</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASA-safe Message Picker -->
+    <section class="space-y-4">
+      <h2 class="text-base font-semibold">CASA-safe Message Picker</h2>
+      <div class="card p-4">
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-primary-600" checked>Unread</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-primary-600">Updates</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" class="accent-primary-600">Sent (replies)</label>
+          <span class="hidden sm:inline mx-2 text-soft">Newer than</span>
+          <select class="px-2 py-1 rounded-lg border border-ring bg-surface text-sm">
+            <option>7d</option><option>30d</option><option>90d</option>
+          </select>
+          <input placeholder="From (name or email)" class="px-3 py-1.5 rounded-lg border border-ring bg-surface text-sm flex-1 min-w-[160px]" />
+          <input placeholder="Subject contains..." class="px-3 py-1.5 rounded-lg border border-ring bg-surface text-sm flex-1 min-w-[160px]" />
+          <button class="ml-auto px-3 py-1.5 rounded-lg bg-primary-600 text-white text-sm shadow-soft hover:bg-primary-700">Search</button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-soft border-y">
+                <th class="py-2 pr-4">From</th>
+                <th class="py-2 pr-4">Subject</th>
+                <th class="py-2">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="3" class="text-center text-soft py-8">No results — try a search.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reply Assistant (CASA-safe) -->
+    <section class="space-y-4">
+      <h2 class="text-base font-semibold">Reply Assistant (CASA-safe)</h2>
+      <form class="card p-6 space-y-4">
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="space-y-1">
+            <label class="text-sm text-soft">To</label>
+            <input placeholder="name@example.com" class="w-full px-3 py-2 rounded-lg border border-ring bg-surface" />
+          </div>
+          <div class="space-y-1">
+            <label class="text-sm text-soft">Subject</label>
+            <input placeholder="Re: your question about…" class="w-full px-3 py-2 rounded-lg border border-ring bg-surface" />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" class="accent-primary-600" checked>
+            Auto “Re:”
+          </label>
+          <div class="text-sm">
+            Tone:
+            <select class="ml-1 px-2 py-1 rounded-lg border border-ring bg-surface">
+              <option>Professional</option><option>Friendly</option><option>Brief</option>
+            </select>
+          </div>
+          <label class="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" class="accent-primary-600" checked>
+            Append my signature
+          </label>
+          <button type="button" class="ml-auto px-3 py-1.5 rounded-lg border border-ring bg-surface hover:bg-primary-50 text-sm">Edit Profile…</button>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="space-y-1 md:col-span-2">
+            <label class="text-sm text-soft">Original message (paste here)</label>
+            <textarea rows="6" placeholder="Paste the email you’re replying to." class="w-full px-3 py-2 rounded-lg border border-ring bg-surface"></textarea>
+          </div>
+          <div class="space-y-1 md:col-span-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-soft">Your reply</label>
+              <div class="flex items-center gap-2">
+                <button type="button" class="px-3 py-1.5 rounded-lg bg-surface border border-ring hover:bg-primary-50 text-sm">Write reply with AI</button>
+                <button type="button" class="px-3 py-1.5 rounded-lg bg-surface border border-ring hover:bg-primary-50 text-sm">Refine with AI</button>
+              </div>
+            </div>
+            <textarea rows="6" placeholder="Type or edit your reply here." class="w-full px-3 py-2 rounded-lg border border-ring bg-surface"></textarea>
+          </div>
+        </div>
+
+        <div class="rounded-lg bg-canvas border border-ring p-3 text-sm">
+          <div class="font-medium">Preview (what will be sent to Drafts)</div>
+          <div class="mt-1 text-soft"><span class="font-medium">Subject:</span> Re: —</div>
+          <div class="mt-1 text-soft"><span class="font-medium">Body:</span> (reply is empty)</div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-soft">Tip: <span class="kbd">Ctrl/Cmd + Enter</span> creates the draft.</div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="px-3 py-2 rounded-lg border border-ring bg-surface hover:bg-primary-50">Discard reply</button>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-primary-600 text-white shadow-soft hover:bg-primary-700">Send to Drafts</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <footer class="pt-4 pb-12 text-center text-xs text-soft">
+      Design preview only • No live data • © AI Inbox Assistant
+    </footer>
+  </main>
+</body>
+</html>
