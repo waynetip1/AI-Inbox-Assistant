@@ -2,6 +2,7 @@
 import express from "express";
 import { google } from "googleapis";
 import { providerForTier } from "../llmProvider.js";
+import OpenAI from "openai";
 
 /** Light HTML → text */
 function stripHtml(html = "") {
@@ -11,6 +12,42 @@ function stripHtml(html = "") {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function parseAddr(raw = "") {
+  const m = raw.match(/^(?:"?([^"]*)"?\s)?<?([^<>@\s]+@[^<>@\s]+)>?$/);
+  if (m) return { name: (m[1] || "").trim(), email: (m[2] || "").trim() };
+  return { name: "", email: raw.trim() };
+}
+
+function parseAddressList(raw = "") {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((s) => parseAddr(s.trim()))
+    .filter((x) => x.email);
+}
+
+// ---------- helpers ----------
+function base64url(buf) {
+  return Buffer.from(buf)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function buildRawEmail({ to, subject, body }) {
+  const lines = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    body,
+  ];
+  return base64url(lines.join("\r\n"));
 }
 
 async function fetchMessageText(gmail, msgId) {
@@ -69,7 +106,243 @@ function getDaily(session) {
   return session.daily;
 }
 
-// Shared handler used by both /analyze AND /
+function maybeQuote(s) {
+  return /\s/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
+}
+
+// ---------------- CASA-SAFE SEARCH (metadata only) ----------------
+async function handleSearch(req, res, sessionStore) {
+  const sessionId = req.query.session?.toString() || "TEST123";
+  const session = sessionStore[sessionId];
+  if (!session?.oauth2Client) {
+    return res.status(401).json({
+      ok: false,
+      error: "NO_SESSION",
+      message: "Authenticate first at /auth/google?session=YOUR_SESSION_ID",
+    });
+  }
+
+  const from = (req.query.from || "").toString().trim();
+  const to = (req.query.to || "").toString().trim();
+  const subject = (req.query.subject || "").toString().trim();
+  const newer = (req.query.newer_than || "7d").toString().trim();
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit || "20", 10), 50));
+
+  const qParts = ["in:inbox"];
+  if (from) qParts.push(`from:${maybeQuote(from)}`);
+  if (to) qParts.push(`to:${maybeQuote(to)}`);
+  if (subject) qParts.push(`subject:${maybeQuote(subject)}`);
+  if (newer) qParts.push(`newer_than:${newer}`);
+  const q = qParts.join(" ").trim();
+
+  try {
+    const gmail = google.gmail({ version: "v1", auth: session.oauth2Client });
+
+    const list = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: limit,
+      q,
+    });
+
+    const items = list.data.messages || [];
+    if (items.length === 0) {
+      return res.json({ ok: true, meta: { qBuilt: q, limit }, results: [] });
+    }
+
+    const metas = await Promise.all(
+      items.map((m) =>
+        gmail.users.messages.get({
+          userId: "me",
+          id: m.id,
+          format: "metadata",
+          metadataHeaders: ["Subject", "From", "To", "Cc", "Date", "Reply-To", "Message-Id"],
+        })
+      )
+    );
+
+    const results = metas.map(({ data }) => {
+      const H = Object.fromEntries(
+        (data.payload?.headers || []).map((h) => [h.name.toLowerCase(), h.value])
+      );
+      const subj = H["subject"] || "";
+      const fromAddr = parseAddr(H["from"] || "");
+      const toList = parseAddressList(H["to"] || "");
+      const ccList = parseAddressList(H["cc"] || "");
+      const internalMs = data.internalDate ? Number(data.internalDate) : undefined;
+      const threadId = data.threadId;
+      const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${threadId}`;
+      return {
+        id: data.id,
+        threadId,
+        subject: subj,
+        from: fromAddr,
+        to: toList,
+        cc: ccList,
+        date: internalMs ? new Date(internalMs).toISOString() : undefined,
+        gmailUrl,
+      };
+    });
+
+    res.json({ ok: true, meta: { qBuilt: q, limit }, results });
+  } catch (err) {
+    console.error("search (metadata) error:", err);
+    res.status(500).json({ ok: false, error: "SEARCH_FAILED", message: err.message });
+  }
+}
+
+// ---------------- CREATE DRAFT (CASA-safe, user-provided only) ----------------
+async function handleCreateDraft(req, res, sessionStore) {
+  const sessionId = req.query.session?.toString() || "TEST123";
+  const session = sessionStore[sessionId];
+  if (!session?.oauth2Client) {
+    return res.status(401).json({
+      ok: false,
+      error: "NO_SESSION",
+      message: "Authenticate first at /auth/google?session=YOUR_SESSION_ID",
+    });
+  }
+
+  const to = String(req.body?.to || "").trim();
+  const subject = String(req.body?.subject || "").trim();
+  const body = String(req.body?.body || "").trim();
+  const threadId = String(req.body?.threadId || "").trim() || undefined;
+
+  if (!to || !subject || body.length < 1) {
+    return res.status(400).json({
+      ok: false,
+      error: "INVALID_INPUT",
+      message: "to, subject, and body are required.",
+    });
+  }
+
+  try {
+    const gmail = google.gmail({ version: "v1", auth: session.oauth2Client });
+
+    const raw = buildRawEmail({ to, subject, body });
+    const requestBody = { message: { raw } };
+    if (threadId) requestBody.message.threadId = threadId;
+
+    const { data } = await gmail.users.drafts.create({
+      userId: "me",
+      requestBody,
+    });
+
+    const createdThreadId = data?.message?.threadId || threadId;
+    const gmailUrl = createdThreadId
+      ? `https://mail.google.com/mail/u/0/#inbox/${createdThreadId}`
+      : `https://mail.google.com/mail/u/0/#drafts`;
+
+    res.json({
+      ok: true,
+      draftId: data?.id || null,
+      messageId: data?.message?.id || null,
+      threadId: createdThreadId || null,
+      gmailUrl,
+    });
+  } catch (err) {
+    console.error("create draft error:", err?.errors || err?.message || err);
+    res.status(500).json({
+      ok: false,
+      error: "CREATE_DRAFT_FAILED",
+      message: err?.message || "Failed to create draft",
+    });
+  }
+}
+
+// ---------------- COMPOSE REPLY (CASA-safe, user-provided only) ----------------
+async function callProviderCompose(provider, { original, subject, to, style }) {
+  // If your provider has a dedicated compose API, use it
+  if (typeof provider?.composeReply === "function") {
+    const out = await provider.composeReply({ original, subject, to, style });
+    return String(out || "").trim();
+  }
+
+  // Fallback: OpenAI
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Compose fallback unavailable: OPENAI_API_KEY not set");
+  }
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const model = process.env.OPENAI_COMPOSE_MODEL || "gpt-4o-mini";
+
+  const sys = [
+    "You are a concise, helpful email writing assistant.",
+    "Write a reply the user can paste as-is.",
+    "Be professional, friendly, and efficient.",
+    "Do not include the original message unless explicitly asked.",
+    "Keep it short unless the original contains multiple questions.",
+  ].join(" ");
+
+  const user = [
+    subject ? `Subject: ${subject}` : "",
+    to ? `To: ${to}` : "",
+    style ? `Style: ${style}` : "Style: professional, friendly, concise",
+    "",
+    "Original message:",
+    original,
+    "",
+    "Write the reply:",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const resp = await client.chat.completions.create({
+    model,
+    temperature: 0.4,
+    max_tokens: 400,
+    messages: [
+      { role: "system", content: sys },
+      { role: "user", content: user },
+    ],
+  });
+
+  const text =
+    resp?.choices?.[0]?.message?.content?.trim() ||
+    resp?.choices?.[0]?.text?.trim() ||
+    "";
+  return text;
+}
+
+async function handleComposeReply(req, res, sessionStore) {
+  // CASA-safe: we still require auth to respect tiering, but we never read Gmail.
+  const sessionId = req.query.session?.toString() || "TEST123";
+  const session = sessionStore[sessionId];
+  if (!session?.oauth2Client) {
+    return res.status(401).json({
+      ok: false,
+      error: "NO_SESSION",
+      message: "Authenticate first at /auth/google?session=YOUR_SESSION_ID",
+    });
+  }
+
+  const original = String(req.body?.original || "").trim();
+  const subject = String(req.body?.subject || "").trim();
+  const to = String(req.body?.to || "").trim();
+  const style = String(req.body?.style || "").trim(); // optional: "brief", "friendly", "formal"...
+
+  if (original.length < 10) {
+    return res.status(400).json({
+      ok: false,
+      error: "INVALID_INPUT",
+      message: "Paste the original message (10+ chars) to compose a reply.",
+    });
+  }
+
+  try {
+    const tier = "free";
+    const provider = providerForTier(tier);
+    const reply = await callProviderCompose(provider, { original, subject, to, style });
+    res.json({ ok: true, reply });
+  } catch (err) {
+    console.error("compose reply error:", err?.message || err);
+    res.status(500).json({
+      ok: false,
+      error: "COMPOSE_FAILED",
+      message: err?.message || "Failed to compose reply",
+    });
+  }
+}
+
+// ---------------- EXISTING /analyze (kept; UI-gated by CASA flag) --------------
 async function handleAnalyze(req, res, sessionStore) {
   const sessionId = req.query.session?.toString() || "TEST123";
   const limit = Math.min(parseInt(req.query.limit || "5", 10), 20);
@@ -90,7 +363,6 @@ async function handleAnalyze(req, res, sessionStore) {
   try {
     const gmail = google.gmail({ version: "v1", auth: session.oauth2Client });
 
-    // Resolve message IDs
     let messageIds = Array.isArray(req.body?.messageIds)
       ? req.body.messageIds.slice(0, limit)
       : [];
@@ -104,7 +376,6 @@ async function handleAnalyze(req, res, sessionStore) {
       messageIds = (list.data.messages || []).map((m) => m.id);
     }
 
-    // Cache & daily cap
     const cache = getCache(session);
     const daily = getDaily(session);
 
@@ -126,7 +397,6 @@ async function handleAnalyze(req, res, sessionStore) {
       });
     }
 
-    // Build worklist honoring remaining quota
     const remaining = Math.max(0, daily.limit - daily.used);
     const toSummarize = [];
     const analyzed = [];
@@ -145,7 +415,6 @@ async function handleAnalyze(req, res, sessionStore) {
       }
     }
 
-    // Call provider for non-cached within remaining quota
     let usage = {};
     if (toSummarize.length > 0) {
       const { summaries, usage: u } = await provider.summarize(toSummarize, {
@@ -160,7 +429,6 @@ async function handleAnalyze(req, res, sessionStore) {
       daily.used += summaries.length;
     }
 
-    // Keep original order
     const byId = new Map(analyzed.map((a) => [a.id, a]));
     const ordered = messageIds.map((id) => byId.get(id) || { id, summary: "", cached: 0 });
 
@@ -198,10 +466,14 @@ async function handleAnalyze(req, res, sessionStore) {
 
 export default function analyzeRoute({ sessionStore }) {
   const router = express.Router();
-  // Support BOTH endpoints depending on where this router is mounted:
-  // - POST /api/analyze
+  // CASA-safe metadata search
+  router.get("/search", (req, res) => handleSearch(req, res, sessionStore));
+  // NEW: compose reply (CASA-safe)
+  router.post("/compose/reply", (req, res) => handleComposeReply(req, res, sessionStore));
+  // NEW: create draft (CASA-safe)
+  router.post("/drafts", (req, res) => handleCreateDraft(req, res, sessionStore));
+  // Existing analyze endpoints
   router.post("/analyze", (req, res) => handleAnalyze(req, res, sessionStore));
-  // - POST /api/emails  (when mounted at /api/emails)
   router.post("/", (req, res) => handleAnalyze(req, res, sessionStore));
   return router;
 }

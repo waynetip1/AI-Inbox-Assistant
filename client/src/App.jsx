@@ -12,6 +12,10 @@ import { getSnapshotPrefs } from "./utils/snapshotPrefs.js";
 import { getSectionOrder } from "./utils/sectionOrder.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
+// CASA-safe picker + reply assistant
+import CasaMessagePicker from "./components/CasaMessagePicker.jsx";
+import ReplyAssistant from "./components/ReplyAssistant.jsx";
+
 import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -40,8 +44,6 @@ ChartJS.register(
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
-
-// 🔒 Feature flag to avoid hitting an endpoint that may not exist yet
 const USAGE_ENABLED = (import.meta.env.VITE_USAGE_ENABLED || "false").toLowerCase() === "true";
 
 function getSessionIdFromUrl() {
@@ -78,7 +80,6 @@ function InsightChips({ insights }) {
   );
 }
 
-
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -101,22 +102,15 @@ function App() {
 
   const [usage, setUsage] = useState({ ok: false });
   const [usageLoading, setUsageLoading] = useState(false);
-  const [usageApiSuppressed, setUsageApiSuppressed] = useState(!USAGE_ENABLED); // off by default
-
-  const [analyzeLoading, setAnalyzeLoading] = useState(false);
-  const [analyzeMeta, setAnalyzeMeta] = useState({ cached: 0, computed: 0 });
-  const [analyzed, setAnalyzed] = useState([]);
-  const [analyzeError, setAnalyzeError] = useState("");
+  const [usageApiSuppressed, setUsageApiSuppressed] = useState(!USAGE_ENABLED);
 
   const [forceRefresh, setForceRefresh] = useState(false);
   const [exactScan, setExactScan] = useState(false);
 
   const [toast, setToast] = useState("");
 
-  // preferences (tiles + user labels)
   const [visibleIds, setVisibleIds] = useState(() => getSnapshotPrefs().visible);
   const [userLabels, setUserLabels] = useState(() => getSnapshotPrefs().userLabels || []);
-  // layout order
   const [sectionOrder, setSectionOrderState] = useState(() => getSectionOrder());
 
   const DEFAULT_EXACT_RANGES = new Set(["1d", "7d"]);
@@ -184,7 +178,7 @@ function App() {
           if ((res.headers.get("Content-Type") || "").includes("application/json")) {
             payload = await res.clone().json();
           }
-        } catch { }
+        } catch {}
         if (payload?.error === "NO_SESSION") {
           const sid = getSessionIdFromUrl();
           window.location.href = `${API_BASE}/auth/google?session=${encodeURIComponent(sid)}`;
@@ -218,14 +212,13 @@ function App() {
   }, [apiDown]);
 
   async function fetchUsage() {
-    if (usageApiSuppressed) return; // don't call if disabled
+    if (usageApiSuppressed) return;
     const sid = getSessionIdFromUrl();
     if (!sid) return;
     setUsageLoading(true);
     try {
       const res = await apiFetch(`${API_BASE}/api/usage?session=${encodeURIComponent(sid)}`);
       if (res.status === 404) {
-        // Not implemented yet — stop future calls for this session
         setUsageApiSuppressed(true);
         setUsage({ ok: false });
         return;
@@ -245,12 +238,10 @@ function App() {
     const sid = getSessionIdFromUrl();
     if (!sid) return;
 
-    const myReqId = ++statsReqRef.current;   // <-- mark this request as the latest
-
+    const myReqId = ++statsReqRef.current;
     const cached = snapshotCache[range];
     const isExpired = cached && Date.now() - cached.timestamp > FIFTEEN_MINUTES;
     if (!skipCache && cached && !isExpired && !forceRefresh && (!exact || cached?.meta?.exact)) {
-      // Only apply cached if still the latest request for this range
       if (statsReqRef.current === myReqId) {
         setStats(cached.stats);
         setSnapshotMeta(cached.meta || null);
@@ -264,15 +255,11 @@ function App() {
 
     try {
       const wantExact = exact || DEFAULT_EXACT_RANGES.has(range);
-      const url = `${API_BASE}/api/stats?session=${encodeURIComponent(sid)}&range=${encodeURIComponent(range)}${wantExact ? "&exact=true" : ""
-        }`;
-
-      const res = await apiFetch(url, { cache: "no-store" });  // <-- avoid 304 races
+      const url = `${API_BASE}/api/stats?session=${encodeURIComponent(sid)}&range=${encodeURIComponent(range)}${wantExact ? "&exact=true" : ""}`;
+      const res = await apiFetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed (${res.status})`);
 
       const json = await res.json();
-
-      // If another request started after this one (or user switched range), bail out
       if (statsReqRef.current !== myReqId || selectedRange !== range) return;
 
       if (json?.totals) {
@@ -315,6 +302,7 @@ function App() {
       }
     }
   };
+
   const fetchTrends = async (range) => {
     const sid = getSessionIdFromUrl();
     if (!sid) return;
@@ -325,14 +313,11 @@ function App() {
     setTrendsError("");
 
     try {
-      const res = await apiFetch(
-        `${API_BASE}/api/trends?session=${encodeURIComponent(sid)}&range=${encodeURIComponent(range)}`,
-        { cache: "no-store" }  // avoid cached 304 races
-      );
+      const res = await apiFetch(`${API_BASE}/api/trends?session=${encodeURIComponent(sid)}&range=${encodeURIComponent(range)}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const json = await res.json();
 
-      if (trendsReqRef.current !== myReqId || selectedRange !== range) return; // stale
+      if (trendsReqRef.current !== myReqId || selectedRange !== range) return;
       if (json?.ok) setTrendsData(json);
     } catch {
       if (trendsReqRef.current === myReqId) {
@@ -343,46 +328,13 @@ function App() {
     }
   };
 
-
-  async function runAnalyze(limit = 5) {
-    const sid = getSessionIdFromUrl();
-    if (!sid) return;
-    setAnalyzeLoading(true);
-    setAnalyzeError("");
-    try {
-      const url = `${API_BASE}/api/emails/analyze?session=${encodeURIComponent(
-        sid
-      )}&limit=${limit}&q=${encodeURIComponent("is:unread newer_than:7d")}`;
-      const res = await apiFetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      const cached = Number(res.headers.get("X-Analyze-Cached") || 0);
-      const computed = Number(res.headers.get("X-Analyze-Computed") || 0);
-      const ct = res.headers.get("Content-Type") || "";
-      const body = ct.includes("application/json") ? await res.json() : { ok: false, error: await res.text() };
-      setAnalyzeMeta({ cached, computed });
-      setAnalyzed(Array.isArray(body.analyzed) ? body.analyzed : []);
-      if (!res.ok || body?.error) setAnalyzeError(body?.error || `Analyze failed (${res.status})`);
-      if (computed > 0 && USAGE_ENABLED) fetchUsage();
-    } catch {
-      setAnalyzeError(apiDown ? "Backend offline — retry after it comes back." : "Analyze failed.");
-    } finally {
-      setAnalyzeLoading(false);
-    }
-  }
-
   useEffect(() => {
     const wantsExact = DEFAULT_EXACT_RANGES.has(selectedRange);
     fetchStats(selectedRange, { exact: wantsExact });
     fetchTrends(selectedRange);
   }, [selectedRange, forceRefresh]);
 
-
-  useEffect(() => {
-    if (USAGE_ENABLED) fetchUsage(); // only call if explicitly enabled
-  }, []);
+  useEffect(() => { if (USAGE_ENABLED) fetchUsage(); }, []);
 
   const handleRefresh = () => {
     setForceRefresh(true);
@@ -398,31 +350,13 @@ function App() {
     () =>
       shouldShowLine
         ? {
-          labels: trendsData.daily.map((d) => String(d.date).replace("ΓÇô", "–")),
-          datasets: [
-            {
-              label: "Total Emails",
-              data: trendsData.daily.map((d) => d.total),
-              borderColor: "rgb(59,130,246)",
-              backgroundColor: "rgba(59,130,246,0.25)",
-              fill: true,
-            },
-            {
-              label: "Read",
-              data: trendsData.daily.map((d) => d.read),
-              borderColor: "rgb(34,197,94)",
-              backgroundColor: "rgba(34,197,94,0.25)",
-              fill: true,
-            },
-            {
-              label: "Unread",
-              data: trendsData.daily.map((d) => d.unread),
-              borderColor: "rgb(239,68,68)",
-              backgroundColor: "rgba(239,68,68,0.25)",
-              fill: true,
-            },
-          ],
-        }
+            labels: trendsData.daily.map((d) => String(d.date).replace("ΓÇô", "–")),
+            datasets: [
+              { label: "Total Emails", data: trendsData.daily.map((d) => d.total), borderColor: "rgb(59,130,246)", backgroundColor: "rgba(59,130,246,0.25)", fill: true },
+              { label: "Read", data: trendsData.daily.map((d) => d.read), borderColor: "rgb(34,197,94)", backgroundColor: "rgba(34,197,94,0.25)", fill: true },
+              { label: "Unread", data: trendsData.daily.map((d) => d.unread), borderColor: "rgb(239,68,68)", backgroundColor: "rgba(239,68,68,0.25)", fill: true },
+            ],
+          }
         : null,
     [shouldShowLine, trendsData]
   );
@@ -520,7 +454,7 @@ function App() {
         try {
           await navigator.clipboard.writeText(query);
           showToast("Copied Gmail search");
-        } catch { }
+        } catch {}
       }, 520);
     };
     const clearTouch = () => {
@@ -539,7 +473,7 @@ function App() {
       try {
         await navigator.clipboard.writeText(query);
         showToast("Copied Gmail search");
-      } catch { }
+      } catch {}
     };
 
     return (
@@ -783,20 +717,20 @@ function App() {
           )
         ) : shouldShowLine ? (
           <>
-          <InsightChips insights={trendsData?.insights} />
-          <div className="h-72">
-            <Line
-              data={lineData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: "top" } },
-                interaction: { intersect: false, mode: "index" },
-                scales: { x: { ticks: { autoSkip: true, maxTicksLimit: 12 } } },
-              }}
-            />
-          </div>
-          </>
+            <InsightChips insights={trendsData?.insights} />
+            <div className="h-72">
+              <Line
+                data={lineData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: "top" } },
+                  interaction: { intersect: false, mode: "index" },
+                  scales: { x: { ticks: { autoSkip: true, maxTicksLimit: 12 } } },
+                }}
+              />
+            </div>
+          </> 
         ) : (
           <p className="text-gray-500">No trends data available.</p>
         )}
@@ -813,7 +747,24 @@ function App() {
           <ReorderSections />
         </div>
       )}
-      <AnalyzePanel />
+
+      {/* CASA-safe message quick picker */}
+      <div className="mb-4">
+        <CasaMessagePicker />
+      </div>
+
+      {/* 🔽 The paste-and-AI Reply Assistant lives here */}
+      <div className="mb-6">
+        <ReplyAssistant />
+      </div>
+
+      {/* Keep your existing AnalyzePanel (optional) */}
+      <details className="bg-white rounded-2xl border border-gray-200 p-4">
+        <summary className="cursor-pointer text-sm text-gray-700">Advanced Analyze Panel (optional)</summary>
+        <div className="mt-3">
+          <AnalyzePanel />
+        </div>
+      </details>
     </section>
   );
 
